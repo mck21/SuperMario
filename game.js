@@ -1,4 +1,5 @@
 import { createAnimations } from "./animations.js";
+import { checkControls } from "./controls.js";
 
 const config = {
     type: Phaser.AUTO,
@@ -39,6 +40,12 @@ function preload() {
         { frameWidth: 18, frameHeight: 16 }
     )
 
+    this.load.spritesheet(
+        "goomba",
+        "assets/entities/overworld/goomba.png",
+        { frameWidth: 16, frameHeight: 16 }
+    )
+
     this.load.audio(
         "gameover",
         "assets/sound/music/gameover2.mp3"
@@ -60,14 +67,21 @@ function create() {
         .setOrigin(0, 0)
         .refreshBody()
 
-    this.mario = this.physics.add.sprite(50, 210, "mario")
+    this.mario = this.physics.add.sprite(50, 100, "mario")
         .setOrigin(0, 1)
         .setGravityY(200)
         .setCollideWorldBounds(true)
 
+    this.enemy = this.physics.add.sprite(100, config.height - 64, "goomba")
+        .setOrigin(0, 1)
+        .setVelocityX(-30)
 
-    this.physics.world.setBounds(0, 0, 2000, config.height)        
+    this.physics.world.setBounds(0, 0, 2000, config.height)
     this.physics.add.collider(this.mario, this.floor)
+    this.physics.add.collider(this.enemy, this.floor)
+    this.physics.add.collider(this.enemy, this.mario, onEnemyCollide)
+
+
 
     this.cameras.main.setBounds(0, 0, 2000, config.height)
     this.cameras.main.startFollow(this.mario)
@@ -77,40 +91,35 @@ function create() {
     this.keys = this.input.keyboard.createCursorKeys()
 }
 
-function update() {
-    if (this.mario.isDead) return
-    if (this.keys.left.isDown) {
-        this.mario.x -= 2
-        this.mario.anims.play("mario-walk", true)
-        this.mario.flipX = true
-    } else if (this.keys.right.isDown) {
-        this.mario.x += 2
-        this.mario.anims.play("mario-walk", true)
-        this.mario.flipX = false
+function onEnemyCollide(mario, enemy) {
+    console.log("Collision detected");
+    if (mario.body.touching.down && enemy.body.touching.up) {
+        console.log("Mario hit enemy from above");
+        enemy.destroy();
+        mario.setVelocityY(-200);
     } else {
-        this.mario.anims.stop()
-        this.mario.anims.play("mario-idle", true)
+        console.log("Mario did not hit enemy from above");
     }
+}
 
-    if (this.keys.up.isDown) {
-        if (this.mario.body.touching.down){
-            this.mario.setVelocityY(-200)
-        }
-        this.mario.anims.play("mario-jump", true)
-    }
+function update() {
+    checkControls(this)
 
-    if (this.mario.y >= config.height) {
-        this.mario.isDead = true
-        this.mario.anims.play("mario-dead", true)
-        this.mario.setCollideWorldBounds(false)
-        this.sound.play("gameover", {volume: 0.2})
+    const { mario, sound, scene } = this
 
-        setTimeout(()=> {
-            this.mario.setVelocityY(-350)
+    //check if mario is dead
+    if (mario.y >= config.height) {
+        mario.isDead = true
+        mario.anims.play("mario-dead", true)
+        mario.setCollideWorldBounds(false)
+        sound.play("gameover", { volume: 0.2 })
+
+        setTimeout(() => {
+            mario.setVelocityY(-350)
         }, 100)
 
-        setTimeout(()=> {
-            this.scene.restart()
+        setTimeout(() => {
+            scene.restart()
         }, 2000)
     }
 }
