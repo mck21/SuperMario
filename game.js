@@ -50,6 +50,12 @@ function preload() {
         "gameover",
         "assets/sound/music/gameover2.mp3"
     )
+
+    this.load.audio(
+        "goomba-stomp",
+        "assets/sound/effects/goomba-stomp.wav"
+    )
+    
 }
 
 function create() {
@@ -76,29 +82,33 @@ function create() {
         .setOrigin(0, 1)
         .setVelocityX(-30)
 
+
     this.physics.world.setBounds(0, 0, 2000, config.height)
     this.physics.add.collider(this.mario, this.floor)
     this.physics.add.collider(this.enemy, this.floor)
-    this.physics.add.collider(this.enemy, this.mario, onEnemyCollide)
-
-
+    this.physics.add.collider(this.mario, this.enemy, onEnemyCollide, null, this)
 
     this.cameras.main.setBounds(0, 0, 2000, config.height)
     this.cameras.main.startFollow(this.mario)
 
     createAnimations(this)
 
+    this.enemy.anims.play("goomba-walk", true)
+
     this.keys = this.input.keyboard.createCursorKeys()
 }
 
 function onEnemyCollide(mario, enemy) {
-    console.log("Collision detected");
     if (mario.body.touching.down && enemy.body.touching.up) {
-        console.log("Mario hit enemy from above");
-        enemy.destroy();
+        enemy.anims.play("goomba-dead", true);
+        this.sound.play("goomba-stomp", { volume: 0.2 })
+        enemy.setVelocityX(0);        
         mario.setVelocityY(-200);
+        mario.setVelocityX(0);
+        setTimeout(() => {
+            enemy.destroy()
+        }, 500)
     } else {
-        console.log("Mario did not hit enemy from above");
     }
 }
 
@@ -120,6 +130,6 @@ function update() {
 
         setTimeout(() => {
             scene.restart()
-        }, 2000)
+        }, 1600)
     }
 }
