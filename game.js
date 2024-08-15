@@ -1,5 +1,7 @@
 import { createAnimations } from "./animations.js";
+import { initAudio, playAudio } from "./audio.js";
 import { checkControls } from "./controls.js";
+import { initSpritesheet } from "./spritesheet.js";
 
 const config = {
     type: Phaser.AUTO,
@@ -34,31 +36,15 @@ function preload() {
         "assets/scenery/overworld/floorbricks.png"
     )
 
-    this.load.spritesheet(
-        "mario",
-        "assets/entities/mario.png",
-        { frameWidth: 18, frameHeight: 16 }
-    )
+    initSpritesheet(this)
 
-    this.load.spritesheet(
-        "goomba",
-        "assets/entities/overworld/goomba.png",
-        { frameWidth: 16, frameHeight: 16 }
-    )
+    initAudio(this)
 
-    this.load.audio(
-        "gameover",
-        "assets/sound/music/gameover2.mp3"
-    )
-
-    this.load.audio(
-        "goomba-stomp",
-        "assets/sound/effects/goomba-stomp.wav"
-    )
-    
 }
 
 function create() {
+    createAnimations(this)
+
     this.add.image(100, 50, "cloud1")
         .setOrigin(0, 0)
         .setScale(0.15)
@@ -82,54 +68,99 @@ function create() {
         .setOrigin(0, 1)
         .setVelocityX(-30)
 
+    this.coins = this.physics.add.staticGroup()
+    this.coins.create(200, config.height - 48, "coin").anims.play("coin-spin", true)
+    this.coins.create(220, config.height - 48, "coin").anims.play("coin-spin", true)
+    this.coins.create(240, config.height - 48, "coin").anims.play("coin-spin", true)
+    this.coins.create(260, config.height - 48, "coin").anims.play("coin-spin", true)
+
+    this.physics.add.overlap(this.mario, this.coins, takeCoin, null, this)
+
 
     this.physics.world.setBounds(0, 0, 2000, config.height)
     this.physics.add.collider(this.mario, this.floor)
     this.physics.add.collider(this.enemy, this.floor)
+    this.physics.add.collider(this.coins, this.floor)
     this.physics.add.collider(this.mario, this.enemy, onEnemyCollide, null, this)
 
     this.cameras.main.setBounds(0, 0, 2000, config.height)
     this.cameras.main.startFollow(this.mario)
-
-    createAnimations(this)
 
     this.enemy.anims.play("goomba-walk", true)
 
     this.keys = this.input.keyboard.createCursorKeys()
 }
 
+
+
+function update() {
+    const { mario } = this
+
+    checkControls(this)
+
+
+    //check if mario is dead
+    if (mario.y >= config.height) {
+        marioDeath(this)
+    }
+}
+
+function takeCoin(mario, coin) {
+    coin.destroy()
+    playAudio("coin", this, { volume: .1 })
+
+    const scoreText = this.add.text(coin.x, coin.y, "100", {
+        fontSize: "5px",
+        fontFamily: "pixel",
+        color: "#fff"
+    })
+
+    this.tweens.add({
+        targets: scoreText,
+        y: scoreText.y - 20,
+        alpha: 0,
+        duration: 800,
+        onComplete: () => {
+            scoreText.destroy()
+        }
+    })
+}
+
+
 function onEnemyCollide(mario, enemy) {
     if (mario.body.touching.down && enemy.body.touching.up) {
         enemy.anims.play("goomba-dead", true);
-        this.sound.play("goomba-stomp", { volume: 0.2 })
-        enemy.setVelocityX(0);        
+        playAudio("goomba-stomp", this)
+        enemy.setVelocityX(0);
         mario.setVelocityY(-200);
         mario.setVelocityX(0);
         setTimeout(() => {
             enemy.destroy()
         }, 500)
     } else {
+        marioDeath(this)
     }
 }
 
-function update() {
-    checkControls(this)
+function marioDeath(game) {
+    const { mario, scene } = game
 
-    const { mario, sound, scene } = this
+    if (mario.isDead) return
 
-    //check if mario is dead
-    if (mario.y >= config.height) {
-        mario.isDead = true
-        mario.anims.play("mario-dead", true)
-        mario.setCollideWorldBounds(false)
-        sound.play("gameover", { volume: 0.2 })
+    mario.isDead = true
+    mario.anims.play("mario-dead", true)
+    mario.setCollideWorldBounds(false)
 
-        setTimeout(() => {
-            mario.setVelocityY(-350)
-        }, 100)
+    playAudio("gameover", game, { volume: .2 })
 
-        setTimeout(() => {
-            scene.restart()
-        }, 1600)
-    }
+    mario.body.checkCollision.none = true
+    mario.setVelocityX(0)
+
+    setTimeout(() => {
+        mario.setVelocityY(-250)
+    }, 100)
+
+    setTimeout(() => {
+        scene.restart()
+    }, 2000)
 }
