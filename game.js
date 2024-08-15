@@ -105,17 +105,14 @@ function update() {
     }
 }
 
-function takeCoin(mario, coin) {
-    coin.destroy()
-    playAudio("coin", this, { volume: .1 })
-
-    const scoreText = this.add.text(coin.x, coin.y, "100", {
-        fontSize: "5px",
+function addToScore(scoreToAdd, origin, game) {
+    const scoreText = game.add.text(origin.x, origin.y, scoreToAdd, {
+        fontSize: "6px",
         fontFamily: "pixel",
         color: "#fff"
     })
 
-    this.tweens.add({
+    game.tweens.add({
         targets: scoreText,
         y: scoreText.y - 20,
         alpha: 0,
@@ -126,11 +123,21 @@ function takeCoin(mario, coin) {
     })
 }
 
+function takeCoin(mario, coin) {
+    coin.destroy()
+    playAudio("coin", this, { volume: .1 })
+
+    addToScore(100, coin, this)
+}
+
 
 function onEnemyCollide(mario, enemy) {
     if (mario.body.touching.down && enemy.body.touching.up) {
         enemy.anims.play("goomba-dead", true);
+
         playAudio("goomba-stomp", this)
+        addToScore(200, mario, this)
+
         enemy.setVelocityX(0);
         mario.setVelocityY(-200);
         mario.setVelocityX(0);
