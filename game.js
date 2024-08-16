@@ -1,6 +1,7 @@
 import { createAnimations } from "./animations.js";
 import { initAudio, playAudio } from "./audio.js";
 import { checkControls } from "./controls.js";
+import { initImages } from "./images.js";
 import { initSpritesheet } from "./spritesheet.js";
 
 const config = {
@@ -26,20 +27,9 @@ const config = {
 var game = new Phaser.Game(config);
 
 function preload() {
-    this.load.image(
-        "cloud1",
-        "assets/scenery/overworld/cloud1.png"
-    )
-
-    this.load.image(
-        "floorbricks",
-        "assets/scenery/overworld/floorbricks.png"
-    )
-
+    initImages(this)
     initSpritesheet(this)
-
     initAudio(this)
-
 }
 
 function create() {
@@ -68,19 +58,23 @@ function create() {
         .setOrigin(0, 1)
         .setVelocityX(-30)
 
-    this.coins = this.physics.add.staticGroup()
-    this.coins.create(200, config.height - 48, "coin").anims.play("coin-spin", true)
-    this.coins.create(220, config.height - 48, "coin").anims.play("coin-spin", true)
-    this.coins.create(240, config.height - 48, "coin").anims.play("coin-spin", true)
-    this.coins.create(260, config.height - 48, "coin").anims.play("coin-spin", true)
+    this.collectibles = this.physics.add.staticGroup()
 
-    this.physics.add.overlap(this.mario, this.coins, takeCoin, null, this)
+    // Coins
+    this.collectibles.create(200, config.height - 48, "coin").anims.play("coin-spin", true)
+    this.collectibles.create(220, config.height - 48, "coin").anims.play("coin-spin", true)
+    this.collectibles.create(240, config.height - 48, "coin").anims.play("coin-spin", true)
+    this.collectibles.create(260, config.height - 48, "coin").anims.play("coin-spin", true)
+
+    // Super Mushroom
+    this.collectibles.create(300, config.height - 40, "superMushroom")
+
+    this.physics.add.overlap(this.mario, this.collectibles, takeItem, null, this)
 
 
     this.physics.world.setBounds(0, 0, 2000, config.height)
     this.physics.add.collider(this.mario, this.floor)
     this.physics.add.collider(this.enemy, this.floor)
-    this.physics.add.collider(this.coins, this.floor)
     this.physics.add.collider(this.mario, this.enemy, onEnemyCollide, null, this)
 
     this.cameras.main.setBounds(0, 0, 2000, config.height)
@@ -123,11 +117,38 @@ function addToScore(scoreToAdd, origin, game) {
     })
 }
 
-function takeCoin(mario, coin) {
-    coin.destroy()
-    playAudio("coin", this, { volume: .1 })
+function takeItem(mario, item) {
+    const { texture: { key } } = item
+    item.destroy()
+    if (key === "coin") {
+        playAudio("coin", this, { volume: .1 })
+        addToScore(100, item, this)
+    } else if (key === "superMushroom") {
+        this.physics.world.pause()
+        this.anims.pauseAll()
 
-    addToScore(100, coin, this)
+        playAudio("powerup", this, { volume: .2 })        
+
+        let i = 0
+        const interval = setInterval(() => {
+            i++
+            mario.anims.play(i % 2 === 0 ? "superMario-idle" : "mario-idle", true)            
+        }, 100)
+
+        mario.isBlocked = true        
+        mario.isSuper = true
+
+        setTimeout(() => {
+            mario.isBlocked = false
+
+            mario.setDisplaySize(18, 32)
+            mario.body.setSize(18, 32)
+
+            clearInterval(interval)
+            this.physics.world.resume()
+            this.anims.resumeAll()
+        }, 1000)
+    }
 }
 
 

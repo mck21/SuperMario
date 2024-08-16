@@ -10,6 +10,10 @@ const INIT_AUDIO = [
     {
         key: "coin",
         path: "assets/sound/effects/coin.mp3"
+    },
+    {
+        key: "powerup",
+        path: "assets/sound/effects/powerup.mp3"
     }
 ]
 
@@ -21,7 +25,7 @@ export const initAudio = ({ load }) => {
 
 export const playAudio = (id, { sound }, { volume = .2 } = {}) => {
     try {
-        return sound.play(id, { volume }).play()
+        return sound.play(id, { volume })
     } catch (error) {
         console.error(error)
     }

@@ -24,6 +24,25 @@ export const createAnimations = (game) => {
     })
 
     game.anims.create({
+        key: "superMario-idle",
+        frames: [{ key: "superMario", frame: 0 }],
+        frameRate: 10,
+        repeat: -1
+    })
+
+    game.anims.create({
+        key: "superMario-walk",
+        frames: game.anims.generateFrameNumbers("superMario", { start: 1, end: 3 }),
+        frameRate: 10,
+        repeat: -1
+    })
+
+    game.anims.create({
+        key: "superMario-jump",
+        frames: [{ key: "superMario", frame: 5 }]       
+    })
+
+    game.anims.create({
         key: "goomba-walk",
         frames: game.anims.generateFrameNumbers("goomba", { start: 0, end: 1 }),
         frameRate: 5,
